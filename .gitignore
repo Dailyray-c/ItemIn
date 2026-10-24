@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.pyc
+
+# 敏感/本地数据，不应提交到仓库
+库存备份_*.json
+用户信息_*.json
+*真实数据*.json
+
+# 本地开发说明（WorkBuddy/CloudStudio 各自的工作记录，不进仓库）
+.workbuddy/
+
+# Node 构建依赖（styles.css 是编译产物，需保留并提交）
+node_modules/
+
+
+# Paddle 本地模型（可从 bcebos 重新下载，不入库）
+_paddle_models/
+
+# 测试图（不进入仓库；testimage.jpg 是仓库原有的 OCR 测试样本，testimage2/3 是用户临时上传）
+_test_imgs/
+testimage2.jpg
+testimage3.jpg
+
+# ------------------------------------------------------------
+# 开发调试产物：一次性验证脚本 / 截图 / 日志，一律不入库
+# 约定：调试用的临时文件统一以 `_` 开头命名（与正式文件区分）
+# 注意：本目录【禁止】使用 `git add .` / `git add -A`，
+#       发布请用 ./push-safe.sh 或手动 git add 指定文件
+# ------------------------------------------------------------
+_*.js
+_*.py
+_*.png
+_*.txt
+_*.log
+_*.json
+_*.html
+_extracted.js
+*.bak
+
+# 调试用目录：_cmpXXXX/（跨版本对照宿主）、_shots/（截图输出）、_backup_*/ 等。
+# 上面的 `_*.js` 一类只覆盖「文件」模式，目录不会被匹配到 —— 结果是 git status
+# 长期挂着 7 个未跟踪目录（噪音），也多留了一个被误 add 的口子。
+_*/
+
+# 2026-10-24：所有调试脚本 / 截图统一收进根目录 `_dev/`（脚本在 `_dev/`、截图在 `_dev/shots/`）。
+# 单独再写一条，避免以后有人把目录改名后 `_*/` 失效、把调试产物推上去。
+_dev/
+
+# 用户的真实库存备份 / 云同步快照：属于隐私数据，任何情况下都不得入库。
+# （history 里曾误提交过 backups/inventory-*.json，见 docs/项目运行与开发上手说明.md 的发布章节）
+backups/
+库存备份_*/
+*真实数据*
+
+# 摘除历史时临时改名留下的旧 .git（含完整旧历史与隐私快照），绝不能进新仓库。
+# 2026-10-24 首次推送时就踩过：`git add -A` 会把 `.git.old/**` 一起收进去，
+# 等于把刚摘掉的敏感历史换个形式又推了上去。
+.git.old/
+.git_old/
+*_git_old_backup/
+
+# 2026-10-08：AI 会话记忆目录（与 .workbuddy/ 同性质）。
+# 原先只忽略了 .workbuddy/，导致 .workbuddy-ai/memory/*.md 长期挂在 git status 里成为噪音。
+.workbuddy-ai/
