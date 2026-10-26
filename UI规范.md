@@ -696,7 +696,7 @@ body.fs-xlarge .fi-chip { font-size: 18px !important; min-height: 35.59px !impor
 ### 6.3 模板引用 ↔ `return{}` 导出（发布卡点）
 
 **现状**：`tools/chk_exports.py` 已随 `tools/` 目录在 2026-10-11 精简时移除。
-需要自动卡点时 `git restore --source=dae2889 tools/`；不恢复时按下面的等价方法手工核对：
+需要自动卡点时 `git --git-dir=D:/WorkBuddyWorkSpace/ItemIn_git_old_backup archive dae2889 tools/ | tar -x`；不恢复时按下面的等价方法手工核对：
 
 1. 取模板区（`<div id="app">` 起）所有 `{{ }}` / `v-if` / `v-for` / `@event` / `:prop` 中出现的标识符；
 2. 取 `return {` 到对应 `};` 之间的键名；
@@ -905,7 +905,7 @@ function ensureScanLib() {
 - 新增 utility class 必须已重编译 Tailwind（`npm run build:css`）；
 - Playwright 回归全绿（0 控制台错误 / 0 个 4xx-5xx）。
 - 验收姿势见 §6.4：先截图交用户确认，**用户点头后才跑测试/push/部署**。
-  > ⚠️ 上游时代的 `tools/chk_exports.py` 已随 `tools/` 目录移除（2026-10-11 精简）；需要时 `git restore --source=dae2889 tools/`。
+  > ⚠️ 上游时代的 `tools/chk_exports.py` 已随 `tools/` 目录移除（2026-10-11 精简）；需要时 `git --git-dir=D:/WorkBuddyWorkSpace/ItemIn_git_old_backup archive dae2889 tools/ | tar -x`（旧历史已移出本仓库，须从备份取）。
 
 ### 8.6 changelog 条目格式
 ```
@@ -916,6 +916,14 @@ function ensureScanLib() {
 ```
 
 ## 九、变更记录
+
+### v1.5.0 — 云同步与 FoodIn 彻底分开（命名空间隔离）（2026-10-26）
+- **不是配色改动，是数据层的隔离**：两边配置同源（同一个 Upstash REST URL + Token），但文档键分离
+  —— 本应用 `itemin:sync`，上游 FoodIn `foodin:sync`
+- **设置页（高级设置 → 云端数据同步）新增一行说明**：`云端文档：itemin:sync · 与 FoodIn 分开存放，共用同一个 REST 库与额度`。
+  写法沿用 `fi-hint`（唯一的次级提示层级），文档键用 `<code>`（preflight 已给 `code` 等宽，**不要再加 `font-mono`** —— 该 utility 未编译，会静默失效）
+- **配置码前缀换代**：生成 `itemin-sync://`，解析兼容旧 `foodin-sync://`；扫码接入的提示文案同步
+- 视觉规则本身没有变化：无新色、无新字号、无新组件
 
 ### v1.4.0 — 辅助色换「古风彩虹」+ 每个功能模块一色（2026-10-17）
 - **主色不变**：木纹棕 `brand` 原样保留，首页模块继续用它

@@ -8,7 +8,7 @@
 ## 一句话
 
 本仓库是 **FoodIn 的一个独立分叉副本**，自上游 **v2.36.3** 起继续开发，与 `Dailyray-c/FoodIn`
-**已完全脱钩**（无 remote，push 不影响上游）。
+**已完全脱钩**（`origin` 指向自己的仓库 `Dailyray-c/ItemIn`，push 影响不到上游）。
 自 **v1.0.0** 起应用更名为 **「物品记」** 并启用**木纹棕**品牌色；`localStorage` 键前缀
 为 `itemin_*`，与上游 `food_inventory_*` **已隔离**（启动时自动迁移，见文末）。
 
@@ -43,17 +43,17 @@ FoodIn 2.36 及更早的历史**保留原号、不重编号**。
 
 ---
 
-## 当前坐标（2026-10-17）
+## 当前坐标（2026-10-24）
 
 | 项 | 值 |
 |---|---|
 | 应用名 | 物品记 ItemIn |
-| 版本 | **1.4.0**（`index.html:16` `window.ITEMIN_V`） |
-| Service Worker | **item-inventory-v8** |
+| 版本 | **1.5.0**（`index.html:16` `window.ITEMIN_V`） |
+| Service Worker | **item-inventory-v9** |
 | 品牌主色 | `#8A5F3B`（木纹棕） |
 | 调试句柄 | `window.__itemin` |
-| 应用文件 | `index.html`，10,340 行 |
-| Git | `master` @ `dae2889`，**无 remote** |
+| 应用文件 | `index.html`，10,422 行 |
+| Git | `master` @ `origin` = `https://github.com/Dailyray-c/ItemIn.git` |
 
 ---
 
@@ -61,12 +61,15 @@ FoodIn 2.36 及更早的历史**保留原号、不重编号**。
 
 - 上游 HEAD：`dae28891b1f92c67fbc94d4de14bcda4e6098b38`（`master`）
 - 分叉基线：`CURRENT_VERSION = '2.36.3'` / SW `food-inventory-v123`
-- 本仓库**保留了上游完整 git 历史**（只移除了 remote），分叉点之前的任何文件都能找回：
+- ❗**本仓库不再保留上游 git 历史**（2026-10-24 起）：旧历史里提交过 `backups/inventory-2026-09-*.json`
+  共 14 份真实库存快照，推到公开仓库等于公开数据，因此改用「全新仓库」——当前仓库从单个提交起步。
+  旧 `.git` 留在仓库外：`D:/WorkBuddyWorkSpace/ItemIn_git_old_backup`（确认远端无误后可删）。
 
 ```bash
-git show dae2889:index.html                    # 看某个历史文件
-git restore --source=dae2889 tools/            # 把已移除的路径整棵取回
-git log --oneline dae2889 -- tools/            # 查某路径的历史
+# 下面这些命令在本仓库里**已不可用**（没有了 dae2889）
+git show dae2889:index.html
+git restore --source=dae2889 tools/
+# 需要旧文件时，去上面那个备份目录里找，或者去上游 FoodIn 仓库
 ```
 
 ---
@@ -78,7 +81,7 @@ git log --oneline dae2889 -- tools/            # 查某路径的历史
 | 已移除 | 原因 | 现状 |
 |---|---|---|
 | `backups/`（CI 库存备份） | 与开发运行无关 | 不再有定时备份 |
-| `tools/`（`chk_exports.py` + `tools/e2e/`） | 检验 / 测试脚本 | **仍未恢复**，需要时 `git restore --source=dae2889 tools/` |
+| `tools/`（`chk_exports.py` + `tools/e2e/`） | 检验 / 测试脚本 | **仍未恢复**，需要时 `git --git-dir=D:/WorkBuddyWorkSpace/ItemIn_git_old_backup archive dae2889 tools/ | tar -x` |
 | `daily-backup.yml` / `daily-expiry-check.yml` | 依赖上游 secrets | 已移除；配套 `scripts/` Python 脚本同批移除（2026-10-17） |
 | `versions/`（38 个旧快照） | 体积 | ✅ **自 v1.3.0 起恢复**，现为 `versions/v1.4.0/` |
 
@@ -104,11 +107,12 @@ git log --oneline dae2889 -- tools/            # 查某路径的历史
 
 | 维度 | 关系 |
 |---|---|
-| Git | **完全脱钩**，无 remote |
+| Git | **完全脱钩**：`origin` → `Dailyray-c/ItemIn` |
 | 离线缓存 | **隔离**：`item-inventory-*` vs `food-inventory-*`；`activate` 只清自身前缀 |
 | 资源 URL | **隔离**：本应用全部带 `?v=<ITEMIN_V>` |
 | `localStorage` 前缀 | **隔离**：`itemin_*` vs 上游 `food_inventory_*`（同源 8088 端口调试不再互相覆盖） |
 | `localStorage` 键 | 已隔离：启动时 `migrateLocalStoragePrefix()` 一次性搬迁，旧键保留不删 |
+| **云同步文档键** | **隔离（v1.5.0）**：`itemin:sync` vs 上游 `foodin:sync`。配置（REST URL + Token）**共用同一份**，只是键不同 → 同库不同键，互不重放 |
 
 ---
 

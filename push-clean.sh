@@ -78,7 +78,7 @@ git commit -m "$MSG" || { echo "（无新改动，跳过。）"; exit 0; }
 
 echo "[5/5] 推送 ..."
 if git_remote push origin master; then
-  echo "✓ 推送成功，GitHub Pages 约 1 分钟生效：https://dailyray-c.github.io/FoodIn/"
+  echo "✓ 推送成功，GitHub Pages 约 1 分钟生效：https://dailyray-c.github.io/ItemIn/"
 else
   echo "  ↻ 非快进，重演后重试 ..."
   if git_remote fetch origin master \

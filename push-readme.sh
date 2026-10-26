@@ -73,7 +73,7 @@ echo "[4/4] 提交并推送 ..."
 if git commit -m "$MSG" && git_remote push origin master; then
   echo ""
   echo "✓ README 已推送。master 触发一次 deploy.yml 重建（README 不参与运行时，线上无变化，约 1 分钟完成）。"
-  echo "  查看仓库：https://github.com/Dailyray-c/FoodIn"
+  echo "  查看仓库：https://github.com/Dailyray-c/ItemIn"
 else
   # 非快进：基于最新远程重演后重试，不用 rebase。
   echo "  ↻ 推送被拒绝（远程已有新提交），重新基于最新远程提交后重试 ..."

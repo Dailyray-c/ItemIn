@@ -4,7 +4,7 @@
 > 到期提醒（保质期 / 保修 / 更换 / 归还）、六类流水与撤销、资产优先统计、
 > Upstash Redis 事件溯源云同步。
 
-**当前版本 `1.4.0`** ｜ Service Worker `item-inventory-v8` ｜ 应用文件 `index.html`（10,340 行）
+**当前版本 `1.4.0`** ｜ Service Worker `item-inventory-v8` ｜ 应用文件 `index.html`（10,422 行）
 **本仓库尚未部署**：与上游脱钩后**没有任何 remote**，发布前需自行接入仓库（见 §八）。
 
 > 🔀 本仓库由 **FoodIn** 分叉而来（分叉点 `dae2889` = 上游 v2.36.3），自 **v1.0.0** 起更名「物品记」
@@ -41,7 +41,7 @@
 | 样式 | **TailwindCSS 3.4.19** | 只做预编译：`src/tailwind.css` → `styles.css`（产物入库） |
 | 构建 | **无** | 没有打包器 / SFC / 路由 / TypeScript；唯一构建动作是重编译 CSS |
 | 离线 | **Service Worker** | 同源 GET 白名单 + 预缓存 + 504 兜底 |
-| 数据 | **localStorage** + **Upstash Redis REST** | 单文档 `foodin:sync`，gzip + base64 信封 |
+| 数据 | **localStorage** + **Upstash Redis REST** | 单文档 `itemin:sync`（与 FoodIn 的 `foodin:sync` 分开），gzip + base64 信封 |
 | 扫码 | `vendor/html5-qrcode.min.js`、`vendor/qrcode.min.js` | **按需注入**，不进首屏 |
 
 ---
@@ -130,7 +130,7 @@ npm run build:css     # tailwindcss -i ./src/tailwind.css -o ./styles.css --mini
 | [`docs/文档索引.md`](docs/文档索引.md) | ⭐ **先读**：有哪些文档、谁管什么、冲突时听谁的 |
 | [`docs/本仓库身份与FoodIn的关系.md`](docs/本仓库身份与FoodIn的关系.md) | 仓库身份、分叉点、更名换色、精简清单 |
 | [`docs/项目运行与开发上手说明.md`](docs/项目运行与开发上手说明.md) | 上手流程：运行 / 构建 / 验收 / 发布 |
-| [`docs/项目架构与实现逻辑分析_v1.4.0.md`](docs/项目架构与实现逻辑分析_v1.4.0.md) | 源码地图：分区、数据模型、流程、接口 |
+| [`docs/项目架构与实现逻辑分析_v1.5.0.md`](docs/项目架构与实现逻辑分析_v1.5.0.md) | 源码地图：分区、数据模型、流程、接口 |
 | [`UI规范.md`](UI规范.md) | UI 硬规则唯一依据 |
 | [`docs/开发经验总览.md`](docs/开发经验总览.md) | 踩坑索引与排错速查 |
 | [`docs/E2E测试手册.md`](docs/E2E测试手册.md) | 截图 / 回归脚本操作细节 |
@@ -140,13 +140,12 @@ npm run build:css     # tailwindcss -i ./src/tailwind.css -o ./styles.css --mini
 
 ## 八、部署
 
-### 前提：先接入 remote
+### 远端
 
-```bash
-git remote add origin <你的仓库地址>
-```
+`origin` → `https://github.com/Dailyray-c/ItemIn.git`（分支 `master`）。
 
-当前 `push-safe.sh` 在 fetch 阶段会因无 remote 而**明确报错退出**（这是有意的保护，不是故障）。
+> ❗首次推送走的是「全新仓库」策略：旧历史（含 `backups/` 里 14 份真实库存快照）已整体移出，
+> 当前仓库从单个提交起步。原因见 `docs/项目运行与开发上手说明.md` §8.1.1 —— **不要**把旧 `.git` 合并回来。
 
 ### 发布
 

@@ -93,8 +93,8 @@ try {
 
 | 清单 | 位置 | 作用 | 漏登记后果 |
 |---|---|---|---|
-| `return {}` | `index.html:10258` | 模板可见 | **UI 完全正常但不落盘**（刷新回滚、无 toast）；若漏的是**处理器本身**（`@click="fn(...)"`）则直接 `TypeError: fn is not a function`，按钮失效 |
-| `window.__itemin` | `index.html:10250` | 自动化可达 | 脚本测不到 |
+| `return {}` | `index.html:10340` | 模板可见 | **UI 完全正常但不落盘**（刷新回滚、无 toast）；若漏的是**处理器本身**（`@click="fn(...)"`）则直接 `TypeError: fn is not a function`，按钮失效 |
+| `window.__itemin` | `index.html:10332` | 自动化可达 | 脚本测不到 |
 
 新增函数 / 状态**必须同时进两份**（除非刻意只给其中一方）。
 
@@ -118,7 +118,8 @@ re.search(r'(?<![\w$])' + name + r'(?=\s*[,}])', block)   # 用 in 会被尾逗�
 > 本次（v1.4.0）就是靠第 3 步揪出 `toggleCategory`：录入 / 批量录入 / 编辑三处「分类」按钮全废，
 > 而页面加载与其它页面均无异常 —— 只靠「点一遍」很难发现，靠差集一秒定位。
 
-> 需要原脚本时：`git restore --source=dae2889 tools/`（会带回 `chk_exports.py` 与 `tools/e2e/`）。
+> 需要原脚本时（旧历史已移出本仓库，只能从备份取）：
+> `git --git-dir=D:/WorkBuddyWorkSpace/ItemIn_git_old_backup archive dae2889 tools/ | tar -x`（会带回 `chk_exports.py` 与 `tools/e2e/`）。
 
 ### 3.3 有些是 getter，不是 ref
 
@@ -146,8 +147,8 @@ re.search(r'(?<![\w$])' + name + r'(?=\s*[,}])', block)   # 用 in 会被尾逗�
 不要打真实云端。当前后端是 **Upstash Redis REST**（旧 jsonbin 的 `{record, metadata}` 形状已不适用）：
 
 ```js
-// 读：GET {url}/get/foodin%3Async → { result: "<JSON 字符串>" }
-// 写：POST {url}/set/foodin%3Async → { result: "OK" }
+// 读：GET {url}/get/itemin%3Async → { result: "<JSON 字符串>" }
+// 写：POST {url}/set/itemin%3Async → { result: "OK" }
 await ctx.route('**/upstash.io/**', async route => {
   const mode = global.__syncMode || 'ok';
   if (mode === 'fail401') {

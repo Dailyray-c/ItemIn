@@ -13,7 +13,7 @@
        给这些 URL 统一加 ?v=<版本号>，版本一变 URL 就变，旧缓存自然命中不到。
        —— 脚本里 CURRENT_VERSION / 模板图标 ICON180 都读这个值；manifest.json 是静态 JSON，
           发版时需手工同步一次（漏改只影响「安装到桌面」的图标，不影响页面显示）。 -->
-  <script>window.ITEMIN_V = '1.4.0';</script>
+  <script>window.ITEMIN_V = '1.5.0';</script>
   <meta name="theme-color" content="#8A5F3B">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -2521,6 +2521,9 @@
               </select>
             </div>
             <p v-if="cloudSyncStatus" class="fi-fs-11 text-brand-600">{{ cloudSyncStatus }}</p>
+            <!-- v1.5.0：把「云端文档键」显式摆出来 —— 与 FoodIn 的数据隔离靠的就是这个键，
+                 用户排查「两边串数据」时看这一行就够，也不用去翻源码。 -->
+            <p class="fi-hint">云端文档：<code>{{ CLOUD_DOC_KEY }}</code> · 与 FoodIn 分开存放，共用同一个 REST 库与额度</p>
           </div>
         </div>
 
@@ -3603,7 +3606,7 @@
             <div id="qr-reader-config" class="w-full flex items-center justify-center" style="min-height:220px; background:#000;"></div>
           </div>
           <p class="fi-hint mb-1">若无法扫码，可手动粘贴配置码文本：</p>
-          <textarea v-model="configManualText" rows="2" placeholder="粘贴 foodin-sync:// 开头的配置码"
+          <textarea v-model="configManualText" rows="2" placeholder="粘贴 itemin-sync:// 开头的配置码（旧版 foodin-sync:// 也认）"
             class="w-full fi-fs-11 text-gray-700 bg-gray-50 rounded-lg p-2 mb-3 break-all border border-gray-200 focus:border-info-300 focus:outline-none"></textarea>
           <div class="grid grid-cols-2 gap-2">
             <button @click="closeConfigScan" class="fi-btn-2nd">取消</button>
@@ -4347,7 +4350,7 @@ const app = createApp({
     const products = ref([]);
     const records = ref([]);
     const barcodeCache = ref({});  // { barcode: { name, shelfLife, category, updatedAt } } — 离线条码库+保质期记忆
-    const CURRENT_VERSION = (typeof window !== 'undefined' && window.ITEMIN_V) || '1.4.0';   // ★版本号唯一真源在 <head> 顶部的 window.ITEMIN_V（它同时决定 styles.css / icon-*.png 的 ?v=），此处只是读取 + 兜底
+    const CURRENT_VERSION = (typeof window !== 'undefined' && window.ITEMIN_V) || '1.5.0';   // ★版本号唯一真源在 <head> 顶部的 window.ITEMIN_V（它同时决定 styles.css / icon-*.png 的 ?v=），此处只是读取 + 兜底
     const ICON180 = './icon-180.png?v=' + CURRENT_VERSION;   // v1.2.0：模板里的品牌图标统一走它 —— 避免与上游 FoodIn 同名图标串缓存（症状：侧栏还是橙色菜篮）
     // v1.2.0：语义层通用化（取出/借出归还/补货线/到期类型/资产优先统计/智能视图/数量直改/重复购买提示）；   // v1.1.0：面向「物品记」定位移除食品专属功能（加热 / 剩菜 / 小票 OCR）+ 日期信息整体选填（只删不加）；v1.0.1：应用图标按参考图精确复刻（几何+配色均取自参考图像素实测）+ 设置页配色统一为木纹棕主题色（清空全部数据保留红色）；v1.0.0：应用更名「物品记」+ 启用木纹棕品牌色（与上游 FoodIn 的橙色区分）+ 品牌色收敛为两处单一换色入口（tailwind colors.brand / --fi-brand*）+ 换新图标；v2.36.3：重复 id 自愈改确定性 id + 修同名流水误迁移 + 自愈改到同步引擎就绪后（结果可上云）+ 修备份导入同 id 撞车静默丢商品；v2.36.2：本地读取逐键隔离 + 损坏隔离（修数据丢失风险）+ 清理死代码与冗余别名 + 77 处手写字号收敛为 .fi-hint/.fi-fs-11；v2.36.1：位置/分类统一归一化并保证导入、云同步的 location/category 字段传播；删除分区/地点不再留下不可筛选的幽灵位置；多标签删除/重命名、空值统计、空 places 同步、带空格搜索 token 修复；地点/分区/分类名称分隔符校验；SW v120 → v121
     // v1.2.0：默认分类由「纯食品」改为通用物品集合 —— 食品只是其中一类。
@@ -5408,6 +5411,18 @@ const app = createApp({
     // ❗分叉前上游 FoodIn 的历史（2.36 及更早）**不在这里** —— 见仓库 `docs/CHANGELOG.md`，
     //   原因是重编号后 1.x 会与 FoodIn 当年的 1.x 撞号（弹窗里会同时出现两个 v1.0.0）。
     const changelog = [
+      {
+        version: "1.5.0",
+        date: "2026-10-26",
+        items: [
+          "**云同步与 FoodIn 彻底分开（本版核心）**：两边的配置本来就是同一份东西（同一个 Upstash REST URL + Token），而文档键历史上也完全相同（`foodin:sync`）—— 事件日志、快照、条码缓存全挤在一个 Redis 键里，这才是「互串数据」的真正原因：A 的删除会被 B 当成事件重放（B 里没动过的物品凭空消失），B 的新增与改名又会回流 A（A 里冒出自己没录过的条目）。现在**配置同源、命名空间分离**：URL / Token 一个字都没改，照旧填同一份配置、同一个库、同一套额度，只把文档键换成 `itemin:sync` —— 两边各写各的键、各读各的键，互不可见、互不重放。隔离粒度是「键」不是「库」，所以不需要第二套 Upstash 实例",
+          "**换键过渡是「本机全量重推」，不是「从旧键搬数据」**：旧键里 ItemIn 与 FoodIn 的记录已经混在一起，任何自动搬运都会把对方的数据一起搬过来 —— 那等于换个地方继续串。所以首次同步的做法是：把**本机现有数据**作为新文档的初始内容整包推上去（本机才是本应用数据的权威副本），旧键一个字都不碰、原样留给 FoodIn。升级后第一次同步会明确提示「已启用独立云端文档 itemin:sync」，只说一次",
+          "**换键守卫**：`syncState` 新增落盘的 `docKey` 字段记住「上次同步用的是哪个键」。检测到键变化时先把差分基线（`baseState`）置空、水位与回读确认标记归零，这样首轮差分就会把本机全量当「新增」入队 —— 否则基线等于当前状态、差分结果为零，新文档根本不会被创建，界面还会显示「数据已是最新」（这是本版最主要的一个坑，已在代码注释里标明原因）",
+          "**配置码前缀换代但兼容旧的**：生成改为 `itemin-sync://`（扫错应用一眼能看出来），解析**两代前缀都认**。理由：配置码里只装 REST URL + Token，它正是「两边共用同一份配置」的载体，不含任何业务数据 —— 兼容旧码不会引入串数据风险，而数据隔离靠的是文档键，与协议前缀无关",
+          "**设置页把云端文档键摆在明面上**：云同步卡片底部直接显示 `云端文档：itemin:sync · 与 FoodIn 分开存放，共用同一个 REST 库与额度`，排查「两边串数据」不用再翻源码",
+          "版本联动：`window.ITEMIN_V` 1.4.0 → **1.5.0**；SW `CACHE_NAME` `item-inventory-v8` → **v9**；归档 `versions/v1.5.0/`"
+        ]
+      },
       {
         version: "1.4.0",
         date: "2026-10-17",
@@ -7917,8 +7932,9 @@ const app = createApp({
           async (decodedText) => {
             if (scanLock) return;
             scanLock = true;
-            // v2.22.0：扫码配置同步——识别到 foodin-sync:// 前缀直接走配置接入，绝不当条码查询
-            if (typeof decodedText === 'string' && decodedText.indexOf('foodin-sync://') === 0) {
+            // v2.22.0：扫码配置同步——识别到配置码前缀直接走配置接入，绝不当条码查询
+            // v1.5.0：前缀判定收敛到 isSyncConfigText()（itemin-sync:// 为主，兼容旧 foodin-sync://）
+            if (isSyncConfigText(decodedText)) {
               if (navigator.vibrate) navigator.vibrate(60);
               toastDone('识别到 物品记 配置码');
               await nextTick();
@@ -8562,8 +8578,20 @@ const app = createApp({
     const configPending = ref(null);          // 待接入的解析结果 {binId, apiKey, name, ts}
     const showConfigConfirm = ref(false);
     let configQrTimer = null;
+    // ===== v1.5.0：配置码协议前缀换代 =====
+    // 生成用 itemin-sync://（本应用身份），**解析必须两代都认**：
+    //   配置码里装的只是 REST URL + Token —— 它正是「两边共用同一份配置」的载体本身，
+    //   不含任何业务数据，所以兼容旧码不会引入串数据的风险；硬拒旧码只会让手里存着
+    //   旧二维码 / 旧文本的用户接不进来。数据隔离靠的是**文档键**（CLOUD_DOC_KEY），不是协议前缀。
+    const SYNC_CODE_PREFIX = 'itemin-sync://';
+    const SYNC_CODE_PREFIX_ALIASES = ['itemin-sync://', 'foodin-sync://'];
+    const SYNC_CODE_TYPES = ['itemin-sync', 'foodin-sync'];
+    function isSyncConfigText(t) {
+      const s = String(t == null ? '' : t).trim();
+      return SYNC_CODE_PREFIX_ALIASES.some(p => s.indexOf(p) === 0);
+    }
     function buildConfigPayload() {
-      return 'foodin-sync://' + encodeURIComponent(JSON.stringify({ v: 1, type: 'foodin-sync', binId: settings.cloudBinId || '', apiKey: settings.cloudApiKey || '', ts: Date.now() }));
+      return SYNC_CODE_PREFIX + encodeURIComponent(JSON.stringify({ v: 1, type: 'itemin-sync', binId: settings.cloudBinId || '', apiKey: settings.cloudApiKey || '', ts: Date.now() }));
     }
     async function ensureQrLib() {
       // v2.22.0 vendor 化：优先同源 vendor/qrcode.min.js（davidshimjs/qrcodejs），失败回退 pickCdnHost
@@ -8635,10 +8663,12 @@ const app = createApp({
     function handleConfigCodeText(text) {
       let payload = null;
       try {
-        const json = decodeURIComponent(String(text).slice('foodin-sync://'.length));
-        payload = JSON.parse(json);
+        const raw = String(text == null ? '' : text).trim();
+        const hit = SYNC_CODE_PREFIX_ALIASES.find(p => raw.indexOf(p) === 0);   // v1.5.0：两代前缀都认
+        if (!hit) throw new Error('no-prefix');
+        payload = JSON.parse(decodeURIComponent(raw.slice(hit.length)));
       } catch (e) { payload = null; }
-      if (!payload || payload.type !== 'foodin-sync' || !payload.binId || !payload.apiKey) {
+      if (!payload || SYNC_CODE_TYPES.indexOf(payload.type) === -1 || !payload.binId || !payload.apiKey) {
         // v2.34.7：原文案 377px 超宽，且用户需要知道「扫错了还是码坏了」→ 改弹窗
         showTip({
           title: '不是有效的配置码',
@@ -8646,7 +8676,7 @@ const app = createApp({
           points: [
             { main: '检查扫码对象', desc: '要扫的是 App 里「扫码接入」页面生成的那个配置码' },
             { main: '别扫错二维码', desc: '商品条码、其他 App 的二维码都不行' },
-            { main: '手动粘贴注意', desc: '必须包含完整的 foodin-sync:// 开头，不要只复制后半段' },
+            { main: '手动粘贴注意', desc: '必须包含完整的 itemin-sync:// 开头（旧版 foodin-sync:// 也认），不要只复制后半段' },
           ],
           tone: 'danger',
           primary: '重新扫',
@@ -8675,7 +8705,7 @@ const app = createApp({
           { facingMode: 'environment' },
           { fps: 15, qrbox: { width: 240, height: 240 } },
           async (decodedText) => {
-            if (typeof decodedText === 'string' && decodedText.indexOf('foodin-sync://') === 0) {
+            if (isSyncConfigText(decodedText)) {   // v1.5.0：两代配置码前缀（itemin-sync:// / 旧 foodin-sync://）
               if (navigator.vibrate) navigator.vibrate(60);
               await stopConfigScan();
               showConfigScan.value = false;
@@ -9365,7 +9395,12 @@ const app = createApp({
     //   6. 兼容：旧版 App 读到 v2/v3 结构（无 lastModified）会安全中止不推送；本机读到云端旧结构
     //      （v2.16.x 及以前）做一次性并集迁移（不做删除推断，不丢数据）。
     const SYNC_STATE_KEY = lsKey('sync_v2');
-    const syncState = { deviceId: '', lastSeq: 0, lastSeenTs: 0, pendingEvents: [], baseState: null, lastSentSyncedAt: '', lastSentIds: [] };
+    // v1.5.0：+ docKey —— 记录「上次同步用的是哪个云端文档键」并落盘。
+    //   用途：换键（foodin:sync → itemin:sync）后即便刷新页面 / 重开应用，也知道该把本机数据全量重推一次。
+    //   不落盘的话每次启动都会重推全量（浪费一次上传），也无法区分「从旧键换过来」与「全新安装」。
+    const syncState = { deviceId: '', lastSeq: 0, lastSeenTs: 0, pendingEvents: [], baseState: null, lastSentSyncedAt: '', lastSentIds: [], docKey: '' };
+    // v1.5.0：本次启动是否刚发生文档键切换；仅用于 cloudSync 给出准确文案（空 = 没换过）
+    let syncNsSwitchedFrom = '';
     // v2.18.0：标签页随机后缀——同设备双开标签页时事件 id 不再撞车（内存 seq 各自递进）
     const tabNonce = Math.random().toString(36).slice(2, 6);
 
@@ -9396,7 +9431,8 @@ const app = createApp({
         localStorage.setItem(SYNC_STATE_KEY, JSON.stringify({
           deviceId: syncState.deviceId, lastSeq: syncState.lastSeq,
           lastSeenTs: syncState.lastSeenTs, pendingEvents: syncState.pendingEvents,
-          lastSentSyncedAt: syncState.lastSentSyncedAt, lastSentIds: syncState.lastSentIds
+          lastSentSyncedAt: syncState.lastSentSyncedAt, lastSentIds: syncState.lastSentIds,
+          docKey: syncState.docKey   // v1.5.0
         }));
       } catch (e) { console.error('Sync state save failed:', e); }
     }
@@ -9412,13 +9448,32 @@ const app = createApp({
           syncState.pendingEvents = Array.isArray(o.pendingEvents) ? o.pendingEvents : [];
           syncState.lastSentSyncedAt = o.lastSentSyncedAt || '';
           syncState.lastSentIds = Array.isArray(o.lastSentIds) ? o.lastSentIds : [];
+          syncState.docKey = o.docKey || '';
         }
       } catch (e) { console.error('Sync state load failed:', e); }
       if (!syncState.deviceId) {
         syncState.deviceId = 'dev-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
         persistSyncState();
       }
-      syncState.baseState = captureState();
+      // ===== v1.5.0：文档键切换过渡（共享键 foodin:sync → 独立键 itemin:sync）=====
+      // 为什么需要这道守卫：baseState 是「本地差分基线」，正常情况下这里会把它设成**当前状态**，
+      //   于是首轮 diffToEvents() 得出「零变化」；而新键在云端还不存在（拉取得到 rec === null），
+      //   这种情况只能靠 cloudSync 里的「防误删守卫」顺带把全量推上去 —— 那条路虽然也能work，
+      //   但它本意是兜底（防「本地数据丢失后误清空云端」），不该成为常规路径。
+      //   这里显式把基线置空 → 首轮差分直接把本机全量当成「新增」入队，语义明确、与时序无关。
+      // ❗baseState 本身不落盘（每次启动重建），所以「清空」只需要清内存 + 记住 docKey，不需要迁移脚本。
+      // ❗docKey 为空串 = 升级前从未写过这个字段（老版本），同样走这条路径 —— 此时若是从没开过云同步的
+      //   用户，多出的一次「全量入队」也无害（队列里本来就是全量，推上去正好是首次建库）。
+      const nsSwitched = syncState.docKey !== CLOUD_DOC_KEY;
+      if (nsSwitched) {
+        syncNsSwitchedFrom = syncState.docKey || LEGACY_CLOUD_DOC_KEY;
+        syncState.docKey = CLOUD_DOC_KEY;
+        syncState.lastSeenTs = 0;          // 水位归零：旧键的事件序号对新键毫无意义
+        syncState.lastSentSyncedAt = '';   // 旧键的回读确认标记作废，防误清本地待推队列
+        syncState.lastSentIds = [];
+        persistSyncState();
+      }
+      syncState.baseState = nsSwitched ? null : captureState();
     }
 
     function makeEvent(kind, op, key, patch) {
@@ -9649,7 +9704,25 @@ const app = createApp({
     // ❗字段沿用历史命名（二者均为**本机专属、不进 SETTINGS_SYNC_SCHEMA**，故改语义不影响云同步）：
     //     settings.cloudBinId  → REST URL（如 https://xxx-yyy-12345.upstash.io）
     //     settings.cloudApiKey → REST Token
-    const CLOUD_DOC_KEY = 'foodin:sync';
+
+    // ===== v1.5.0：云端命名空间隔离（与上游 FoodIn 彻底分开）=====
+    // 问题：本应用与 FoodIn 的「配置」本来就是同一份东西（Upstash REST URL + Token），
+    //   而两边历史上的**文档键完全相同**（都是 `foodin:sync`）→ 事件日志、快照、条码缓存
+    //   全挤在同一个 Redis 键里，这是「互串数据」的唯一根因：
+    //     · A 的删除会以 delete 事件被 B 重放 → B 里没动过的商品凭空消失；
+    //     · B 的新增 / 改名会回流 A → A 里冒出自己从没录过的条目；
+    //     · 事件折叠时双方的 knownIds（删除墓碑）混在一起，互相覆盖。
+    // 对策：**配置同源、命名空间分离**。URL / Token 一个字都不用改（照旧填同一份配置、
+    //   同一个库、同一套额度），只把**文档键**加上本应用自己的前缀 →
+    //   两边各写各的键、各读各的键，互不可见、互不重放。隔离粒度是「键」，不是「库」，
+    //   所以不需要第二套 Upstash 实例，也不影响配额与计费方式。
+    // ❗不要把这行改回 'foodin:sync' —— 改回去等于把 FoodIn 的数据重新拉进来重放。
+    const APP_SYNC_NS = 'itemin';
+    const CLOUD_DOC_KEY = APP_SYNC_NS + ':sync';   // = 'itemin:sync'
+    // 旧键：**只读**，仅用于「换键后首次同步」时给用户一句明确交代；
+    //   任何写入路径都不得使用它 —— 写旧键等于重新污染 FoodIn。
+    const LEGACY_CLOUD_DOC_KEY = 'foodin:sync';
+
     function cloudEndpoint() { return String(settings.cloudBinId || '').trim().replace(/\/+$/, ''); }
 
     // 统一云错误文案：按 HTTP 状态判定，5xx 一律归为「服务端暂时不可用」而非用户的错
@@ -10026,9 +10099,18 @@ const app = createApp({
         try { localStorage.setItem(lsKey('settings'), JSON.stringify(settings)); } catch (e) { console.error('Settings save failed:', e); }
         persistSyncState();
         if (pushed) {
-          cloudSyncStatus.value = migrated ? '已迁移为新版云同步并推送' : '已推送本地变更到云端';
-          if (showMsg) showToast(migrated ? '云同步已升级到新版引擎，数据已推送' : '同步成功：已推送本地变更');
-          else cloudAutoSet('done', '已同步到云端', 2400);   // 自动路径：绿色 + 文字，2.4 秒后淡出
+          // v1.5.0：换键后的首次成功推送单独给一条文案 —— 这是「数据从此与 FoodIn 分开」的分界点，
+          //   用户需要知道云端多了个新文档、旧文档没被动过，否则只会看到一句莫名其妙的「已推送」。
+          if (syncNsSwitchedFrom) {
+            cloudSyncStatus.value = '已启用独立云端文档 ' + CLOUD_DOC_KEY + '（本机数据已作为初始内容推送）';
+            if (showMsg) showToast('云同步已与 FoodIn 分开：新建云端文档 ' + CLOUD_DOC_KEY);
+            else cloudAutoSet('done', '已启用独立云端文档', 3000);
+            syncNsSwitchedFrom = '';   // 只提示一次
+          } else {
+            cloudSyncStatus.value = migrated ? '已迁移为新版云同步并推送' : '已推送本地变更到云端';
+            if (showMsg) showToast(migrated ? '云同步已升级到新版引擎，数据已推送' : '同步成功：已推送本地变更');
+            else cloudAutoSet('done', '已同步到云端', 2400);   // 自动路径：绿色 + 文字，2.4 秒后淡出
+          }
           resetSyncRetry();   // v2.18.0：成功后重置退避
         } else if (partialPush) {
           cloudSyncStatus.value = '部分变更已上云，剩余保留待自动重试';
@@ -10247,7 +10329,7 @@ const app = createApp({
     });
 
     // 调试/自动化测试钩子（不影响正常运行）
-    window.__itemin = { products, records, settings, syncState, saveData, cloudSync, applyStockDelta, executeRevoke, revokingRecord, clearAllData, applyImportPayload, ensureScanLib, batchItems, addBatchItem, addBatchItemAndScroll, removeBatchItem, submitAllBatch, cleanProductName, exportStockCsv, exportRecordsCsv, exportStatsCsv, WASTE_REASONS, wasteReviewMonth, handleConfigCodeText, openConfigQr, confirmDelete, executeWasteDeleteWithReason, decrementStock, currentPage, navigateTo, moduleStyle, pageModule, MODULE_STYLE, showScanModal: () => showScanModal.value, setShowScanModal: (v) => { showScanModal.value = v; }, showFilterModal: () => showFilterModal.value, setShowFilterModal: (v) => { showFilterModal.value = v; }, searchQuery, scanForm, editForm, showLocationPanel, locPanelExpanded, placeAlertCount, displayLocation, locPickPlace, locPickZone, locPickTag, locClear, focusPlaceByName, focusZoneByName, focusLooseTag, looseLocationTags, placesWithZones, placesWithZonesView, placesNoZonesView, placesOrderedView, isPlaceZoned, migrateLooseLocationsToPlaces, purgeGhostProducts, dedupeProductIds, deterministicProductId, fnv1a32, findProduct, removeProduct, undoCache, UNDO_CACHE_KEY, loadUndoCache, saveUndoSnapshot, getUndoSnapshot, getUndoChanged, undoChangedFromDetail, dropUndoSnapshot, pruneUndoCache, cloneProduct, undoFieldDiff, undoFillEmpty, splitShelfLifeValue, setShelfLifeFromText, composeShelfLifeText, initEditShelfLife, backfillShelfLifeByDays, pickShelfLifeUnit, calcShelfLifeParts, calcExpiryDateFromParts, revokePreview, placeProducts, placeStatus, openEditModal, addPlace, removePlace, togglePlaceZones, addZoneToPlace, removeZoneFromPlace, setPlaceLayout, replayState, lookupBarcode, apiMessage: () => apiMessage.value, apiSuccess: () => apiSuccess.value, apiLoading: () => apiLoading.value, cachedMode: () => cachedMode.value, cloudAutoHint, cloudAutoText, cloudAutoSet, cloudSyncButtonVisible, CLOUD_SYNC_PAGES, toastDone, toastFail, toastGuide, toastErr, toastDup, showTip, closeTip, tipModal, runTipAction, startRename, confirmRename, cancelRename, renaming, removeCategory, newPlaceInput, confirmRevoke, tourActive: () => tourActive.value, tourStep: () => tourStep.value, TOUR_STEPS, startTour, endTour, startTourFromModule, nextTourStep, prevTourStep, tourDemoOwned: () => tourDemoOwned.value, seedDemoData, clearDemoData, tourFree: () => tourFree.value, tourBarTop: () => tourBarTop.value, tourRect: () => tourRect.value, enterTourFree, tourPrimary,
+    window.__itemin = { products, records, settings, syncState, saveData, cloudSync, CLOUD_DOC_KEY, LEGACY_CLOUD_DOC_KEY, applyStockDelta, executeRevoke, revokingRecord, clearAllData, applyImportPayload, ensureScanLib, batchItems, addBatchItem, addBatchItemAndScroll, removeBatchItem, submitAllBatch, cleanProductName, exportStockCsv, exportRecordsCsv, exportStatsCsv, WASTE_REASONS, wasteReviewMonth, handleConfigCodeText, openConfigQr, confirmDelete, executeWasteDeleteWithReason, decrementStock, currentPage, navigateTo, moduleStyle, pageModule, MODULE_STYLE, showScanModal: () => showScanModal.value, setShowScanModal: (v) => { showScanModal.value = v; }, showFilterModal: () => showFilterModal.value, setShowFilterModal: (v) => { showFilterModal.value = v; }, searchQuery, scanForm, editForm, showLocationPanel, locPanelExpanded, placeAlertCount, displayLocation, locPickPlace, locPickZone, locPickTag, locClear, focusPlaceByName, focusZoneByName, focusLooseTag, looseLocationTags, placesWithZones, placesWithZonesView, placesNoZonesView, placesOrderedView, isPlaceZoned, migrateLooseLocationsToPlaces, purgeGhostProducts, dedupeProductIds, deterministicProductId, fnv1a32, findProduct, removeProduct, undoCache, UNDO_CACHE_KEY, loadUndoCache, saveUndoSnapshot, getUndoSnapshot, getUndoChanged, undoChangedFromDetail, dropUndoSnapshot, pruneUndoCache, cloneProduct, undoFieldDiff, undoFillEmpty, splitShelfLifeValue, setShelfLifeFromText, composeShelfLifeText, initEditShelfLife, backfillShelfLifeByDays, pickShelfLifeUnit, calcShelfLifeParts, calcExpiryDateFromParts, revokePreview, placeProducts, placeStatus, openEditModal, addPlace, removePlace, togglePlaceZones, addZoneToPlace, removeZoneFromPlace, setPlaceLayout, replayState, lookupBarcode, apiMessage: () => apiMessage.value, apiSuccess: () => apiSuccess.value, apiLoading: () => apiLoading.value, cachedMode: () => cachedMode.value, cloudAutoHint, cloudAutoText, cloudAutoSet, cloudSyncButtonVisible, CLOUD_SYNC_PAGES, toastDone, toastFail, toastGuide, toastErr, toastDup, showTip, closeTip, tipModal, runTipAction, startRename, confirmRename, cancelRename, renaming, removeCategory, newPlaceInput, confirmRevoke, tourActive: () => tourActive.value, tourStep: () => tourStep.value, TOUR_STEPS, startTour, endTour, startTourFromModule, nextTourStep, prevTourStep, tourDemoOwned: () => tourDemoOwned.value, seedDemoData, clearDemoData, tourFree: () => tourFree.value, tourBarTop: () => tourBarTop.value, tourRect: () => tourRect.value, enterTourFree, tourPrimary,
       // v1.2.0：新增能力暴露给 E2E 脚本（智能视图 / 借出归还 / 补货线 / 到期类型 / 数量直改 / 示例数据 / 分类补全）
       smartView, toggleSmartView, setSmartView, clearSmartView, SMART_VIEWS, smartViewActiveClass, markState, cancelMark, lowStockProducts, idleProducts, scanDuplicates, borrowedQtyOf,
       openBorrowPrompt, cancelBorrow, confirmBorrow, returnBorrowed, outstandingBorrows, outstandingBorrowQty, showBorrowPanel, toggleBorrowPanel, openBorrowPanel, borrowPrompt, borrowBuyer,
@@ -10303,7 +10385,7 @@ const app = createApp({
       startScanning, stopScanning, openScan, lookupBarcode,
       torchOn, torchSupported, toggleTorch,
       exportData, importData, clearAllData, saveExpiringDays,
-      saveCloudSettings, cloudSync,
+      saveCloudSettings, cloudSync, CLOUD_DOC_KEY,
       saveBarcodeSettings,
       // v2.35.0：高级设置二级页
       // v2.35.0：高级设置入口（单卡入口 → 四张配置卡平铺页）

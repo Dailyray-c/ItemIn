@@ -1,6 +1,6 @@
 {
   "name": "item-in",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "物品记 ItemIn - 家庭物品库存管理静态 PWA 构建",
   "scripts": {
